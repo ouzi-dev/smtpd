@@ -305,6 +305,10 @@ func (srv *Server) configureDefaults() {
 		srv.WelcomeMessage = fmt.Sprintf("%s ESMTP ready.", srv.Hostname)
 	}
 
+	if srv.ReplyHandler == nil {
+		srv.ReplyHandler = defaultReplyHandler
+	}
+
 }
 
 func (session *session) serve() {
@@ -374,10 +378,7 @@ func (session *session) reply(code int, message string) {
 	session.logf("sending: %d %s", code, message)
 	fmt.Fprintf(session.writer, "%d %s\r\n", code, message)
 	session.flush()
-
-	if session.server.ReplyHandler != nil {
-		session.server.ReplyHandler(code, message)
-	}
+	session.server.ReplyHandler(code, message)
 }
 
 func (session *session) flush() {
@@ -498,3 +499,5 @@ type atomicBool int32
 func (b *atomicBool) isSet() bool { return atomic.LoadInt32((*int32)(b)) != 0 }
 func (b *atomicBool) setTrue()    { atomic.StoreInt32((*int32)(b), 1) }
 func (b *atomicBool) setFalse()   { atomic.StoreInt32((*int32)(b), 0) }
+
+func defaultReplyHandler(code int, message string) {}
