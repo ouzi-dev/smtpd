@@ -460,6 +460,8 @@ func (session *session) deliver() error {
 
 func (session *session) close() {
 	if !session.isClosed {
+		session.isClosed = true
+
 		session.conn.SetWriteDeadline(time.Now().Add(session.server.CloseMaxDeadline))
 
 		session.writer.Flush()
@@ -470,8 +472,6 @@ func (session *session) close() {
 
 		session.server.CloseSessionHandler(session.peer)
 	}
-
-	session.isClosed = true
 }
 
 // From net/http/server.go
