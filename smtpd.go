@@ -122,15 +122,18 @@ type session struct {
 	scanner *bufio.Scanner
 
 	tls bool
+
+	isClosed bool
 }
 
 func (srv *Server) newSession(c net.Conn) (s *session) {
 
 	s = &session{
-		server: srv,
-		conn:   c,
-		reader: bufio.NewReader(c),
-		writer: bufio.NewWriter(c),
+		server:   srv,
+		conn:     c,
+		reader:   bufio.NewReader(c),
+		writer:   bufio.NewWriter(c),
+		isClosed: false,
 		peer: Peer{
 			Addr:       c.RemoteAddr(),
 			ServerName: srv.Hostname,
@@ -456,15 +459,19 @@ func (session *session) deliver() error {
 }
 
 func (session *session) close() {
-	session.conn.SetWriteDeadline(time.Now().Add(session.server.CloseMaxDeadline))
+	if !session.isClosed {
+		session.conn.SetWriteDeadline(time.Now().Add(session.server.CloseMaxDeadline))
 
-	session.writer.Flush()
-	// trying to avoid having a hardcoded sleep time to close the connection using SetWriteDeadline
-	// time.Sleep(200 * time.Millisecond)
+		session.writer.Flush()
+		// trying to avoid having a hardcoded sleep time to close the connection using SetWriteDeadline
+		// time.Sleep(200 * time.Millisecond)
 
-	session.conn.Close()
+		session.conn.Close()
 
-	session.server.CloseSessionHandler(session.peer)
+		session.server.CloseSessionHandler(session.peer)
+	}
+
+	session.isClosed = true
 }
 
 // From net/http/server.go
